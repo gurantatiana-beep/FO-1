@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цифровой Щит: Лаборатория Паролей</title>
+    <style>
+        :root {
+            --primary: #6200ee;
+            --secondary: #03dac6;
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --error: #cf6679;
+            --success: #4caf50;
+            --text: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #game-container {
+            background-color: var(--surface);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 600px;
+            width: 100%;
+            border: 2px solid var(--primary);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .question {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .options {
+            display: grid;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: #2c2c2c;
+            border: 1px solid #444;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            font-size: 1rem;
+        }
+
+        .option-btn:hover {
+            background: #3d3d3d;
+            border-color: var(--secondary);
+        }
+
+        .option-btn.correct {
+            background-color: var(--success) !important;
+            border-color: white;
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error) !important;
+            border-color: white;
+        }
+
+        #feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            font-style: italic;
+            border-left: 5px solid var(--secondary);
+            background: rgba(3, 218, 198, 0.1);
+        }
+
+        .hidden { display: none; }
+
+        #result-screen {
+            text-align: center;
+        }
+
+        .badge {
+            font-size: 4rem;
+            margin: 20px 0;
+        }
+
+        button#next-btn, button#restart-btn {
+            margin-top: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        button#next-btn:hover { background: #7722ff; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="quiz-screen">
+        <div class="header">
+            <h2>🛡️ Модуль 1: Крепость Паролей</h2>
+        </div>
+        <div class="stats">
+            <span>Вопрос: <span id="q-number">1</span>/10</span>
+            <span>Броня: <span id="score">0</span> XP</span>
+        </div>
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+        <div id="question-text" class="question">Загрузка вопроса...</div>
+        <div id="options-container" class="options"></div>
+        <div id="feedback" class="feedback"></div>
+        <button id="next-btn" class="hidden">Следующий уровень ➔</button>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h2>Миссия завершена!</h2>
+        <div class="badge" id="final-emoji">🏆</div>
+        <p id="final-text"></p>
+        <p>Твоя итоговая прочность брони: <strong><span id="final-score"></span>/100 XP</strong></p>
+        <button id="restart-btn" onclick="location.reload()">Начать заново</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "Какая минимальная длина пароля считается надежной в нашем курсе?",
+            options: ["6 символов", "12 символов", "8 символов", "Неважно, если есть цифры"],
+            correct: 1,
+            rationale: "Длина в 12 и более символов — это золотой стандарт современной защиты!"
+        },
+        {
+            q: "Какой пароль можно назвать «неубиваемым»?",
+            options: ["P@ssw0rd2024!", "RobloxLover123", "G7!kL9#m2$QpX", "123456789012"],
+            correct: 2,
+            rationale: "Случайный набор символов — настоящий кошмар для хакера."
+        },
+        {
+            q: "Что такое двухфакторная аутентификация (2FA)?",
+            options: ["Два разных пароля", "Вход с двух устройств", "Второй слой защиты (код из SMS/приложения)", "Пароль из двух слов"],
+            correct: 2,
+            rationale: "Это как второй замок на двери, ключ от которого только у тебя в телефоне."
+        },
+        {
+            q: "В чем опасность одинаковых паролей для всех сайтов?",
+            options: ["Это запрещено", "Взлом одного откроет доступ ко всем остальным", "Компьютер перегрузится", "Аккаунты объединятся"],
+            correct: 1,
+            rationale: "Это называется «эффект домино». Всегда используй разные пароли!"
+        },
+        {
+            q: "Суперсила менеджера паролей в том, что...",
+            options: ["Он взламывает чужие профили", "Не нужно запоминать десятки сложных паролей", "Ускоряет интернет", "Заменяет антивирус"],
+            correct: 1,
+            rationale: "Ты помнишь один главный пароль, а менеджер помнит всё остальное за тебя."
+        },
+        {
+            q: "Твое приложение просит обновиться. Что сделаешь?",
+            options: ["Никогда не буду обновлять", "Обновлюсь через официальный магазин", "Подожду месяц", "Скачаю файл с форума"],
+            correct: 1,
+            rationale: "Обновления — это свежие заплатки на дырах в безопасности."
+        },
+        {
+            q: "Правда или ложь: Пароль 'QWERTY123456' надежен, так как в нем 12 знаков?",
+            options: ["Правда", "Ложь"],
+            correct: 1,
+            rationale: "Это слишком предсказуемо. Хакеры проверяют такие комбинации первыми."
+        },
+        {
+            q: "Что НЕ относится к защите данных в Модуле 1?",
+            options: ["Обновление ОС", "Сложный пароль", "Публикация домашнего адреса", "Включение 2FA"],
+            correct: 2,
+            rationale: "Адрес — это приватность (Модуль 3), а мы сейчас качаем Броню Данных!"
+        },
+        {
+            q: "Что делать, если ввел пароль на чужом ПК?",
+            options: ["Ничего", "Сменить пароль на своем устройстве", "Перезагрузить ПК", "Удалить браузер"],
+            correct: 1,
+            rationale: "Смена пароля — единственный способ аннулировать доступ для посторонних."
+        },
+        {
+            q: "Зачем нужны знаки #, $, % в пароле?",
+            options: ["Для красоты", "Для длины", "Увеличивают число комбинаций для взлома", "Обязательно для всех"],
+            correct: 2,
+            rationale: "Символы делают перебор пароля почти бесконечным по времени."
+        }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+
+    const qText = document.getElementById('question-text');
+    const optionsContainer = document.getElementById('options-container');
+    const feedback = document.getElementById('feedback');
+    const nextBtn = document.getElementById('next-btn');
+    const qNumDisplay = document.getElementById('q-number');
+    const scoreDisplay = document.getElementById('score');
+    const progressFill = document.getElementById('progress-fill');
+
+    function loadQuestion() {
+        const q = questions[currentQuestion];
+        qText.textContent = q.q;
+        optionsContainer.innerHTML = '';
+        feedback.classList.add('hidden');
+        feedback.style.display = 'none';
+        nextBtn.classList.add('hidden');
+        
+        qNumDisplay.textContent = currentQuestion + 1;
+        progressFill.style.width = `${((currentQuestion) / questions.length) * 100}%`;
+
+        q.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.textContent = opt;
+            btn.classList.add('option-btn');
+            btn.onclick = () => checkAnswer(index);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected) {
+        const buttons = optionsContainer.getElementsByClassName('option-btn');
+        const correct = questions[currentQuestion].correct;
+
+        // Блокируем кнопки
+        for (let btn of buttons) btn.disabled = true;
+
+        if (selected === correct) {
+            buttons[selected].classList.add('correct');
+            score += 10;
+            scoreDisplay.textContent = score;
+            feedback.innerHTML = `<strong>Верно!</strong> ${questions[currentQuestion].rationale}`;
+        } else {
+            buttons[selected].classList.add('wrong');
+            buttons[correct].classList.add('correct');
+            feedback.innerHTML = `<strong>Ой!</strong> ${questions[currentQuestion].rationale}`;
+        }
+
+        feedback.style.display = 'block';
+        nextBtn.classList.remove('hidden');
+    }
+
+    nextBtn.onclick = () => {
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+            loadQuestion();
+        } else {
+            showResults();
+        }
+    };
+
+    function showResults() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        const resultScreen = document.getElementById('result-screen');
+        resultScreen.classList.remove('hidden');
+        
+        document.getElementById('final-score').textContent = score;
+        const finalText = document.getElementById('final-text');
+        const finalEmoji = document.getElementById('final-emoji');
+
+        if (score >= 90) {
+            finalText.textContent = "Невероятно! Ты — Магистр Цифровой Брони!";
+            finalEmoji.textContent = "👑";
+        } else if (score >= 70) {
+            finalText.textContent = "Отлично! Твоя крепость почти неприступна!";
+            finalEmoji.textContent = "🛡️";
+        } else {
+            finalText.textContent = "Неплохо, но броня требует починки. Попробуй еще раз!";
+            finalEmoji.textContent = "🛠️";
+        }
+    }
+
+    loadQuestion();
+</script>
+
+</body>
+</html>
